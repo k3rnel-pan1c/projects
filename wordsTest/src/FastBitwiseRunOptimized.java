@@ -1,24 +1,33 @@
+//584525 milliseconds
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
-public class FastBitwiseRun {
+public class FastBitwiseRunOptimized {
     private ArrayList<String> words;
-    private ArrayList<Integer> wordMasks;
-    private ArrayList<List<String>> allMatches;
+    private BitSet[] wordMasks;
+    private ArrayList<int[]> allMatches;
 
-    public FastBitwiseRun() {
+    public FastBitwiseRunOptimized() {
         words = new ArrayList<>();
-        wordMasks = new ArrayList<>();
         allMatches = new ArrayList<>();
     }
 
-    public void readWordsFromFile(String filename) {
+    public void readWordsAndCreateMasksFromFile(String filename) {
         File file = new File(filename);
-        words = (ArrayList<String>) readLinesFromFile(file);
+        List<String> lines = readLinesFromFile(file);
+        words = new ArrayList<>(lines.size());
+        wordMasks = new BitSet[lines.size()];
+
+        for (int i = 0; i < lines.size(); i++) {
+            String word = lines.get(i);
+            words.add(word);
+            wordMasks[i] = createMask(word);
+        }
     }
 
     private List<String> readLinesFromFile(File file) {
@@ -36,71 +45,61 @@ public class FastBitwiseRun {
         return lines;
     }
 
-    public void createWordMasks() {
-        for (String word : words) {
-            wordMasks.add(createMask(word));
-        }
-    }
-
-    private int createMask(String word) {
-        int mask = 0;
+    private BitSet createMask(String word) {
+        BitSet mask = new BitSet(26);
         for (char ch : word.toCharArray()) {
             if (ch >= 'a' && ch <= 'z') {
-                mask |= (1 << (ch - 'a'));
+                mask.set(ch - 'a');
             }
         }
         return mask;
     }
 
     public void findMatches() {
-        findMatchesRecursive(new ArrayList<>(), 0);
+        findMatchesRecursive(new int[5], 0, 0);
     }
 
-    private void findMatchesRecursive(ArrayList<Integer> clique, int startIndex) {
-        if (clique.size() == 5) {
-            List<String> match = new ArrayList<>();
-            for (int index : clique) {
-                match.add(words.get(index));
-            }
-            allMatches.add(match);
+    private void findMatchesRecursive(int[] clique, int cliqueSize, int startIndex) {
+        if (cliqueSize == 5) {
+            allMatches.add(clique.clone());
             return;
         }
 
-        // Pruning: stop searching if there are not enough words left to form a 5-word clique
-        if (wordMasks.size() - startIndex < 5 - clique.size()) {
+        if (wordMasks.length - startIndex < 5 - cliqueSize) {
             return;
         }
 
-        for (int i = startIndex; i < wordMasks.size(); i++) {
+        for (int i = startIndex; i < wordMasks.length; i++) {
             boolean isConnectedToClique = true;
-            for (int node : clique) {
-                if ((wordMasks.get(node) & wordMasks.get(i)) != 0) {
+            for (int j = 0; j < cliqueSize; j++) {
+                if (wordMasks[clique[j]].intersects(wordMasks[i])) {
                     isConnectedToClique = false;
                     break;
                 }
             }
 
             if (isConnectedToClique) {
-                clique.add(i);
-                findMatchesRecursive(clique, i + 1);
-                clique.remove(clique.size() - 1);
+                clique[cliqueSize] = i;
+                findMatchesRecursive(clique, cliqueSize + 1, i + 1);
             }
         }
     }
 
     public void printMatches() {
         System.out.println("All combinations of 5 words with no shared letters: ");
-        for (List<String> match : allMatches) {
-            System.out.println(match);
+        for (int[] match : allMatches) {
+            for (int index : match) {
+                System.out.print(words.get(index) + " ");
+            }
+            System.out.println();
         }
     }
 
     public static void main(String[] args) {
-        FastBitwiseRun program = new FastBitwiseRun();
-        program.readWordsFromFile("C:\\Users\\Clay\\git\\projects\\wordsTest\\src\\woerter.txt");
+        FastBitwiseRunOptimized program = new FastBitwiseRunOptimized();
+        program.readWordsAndCreateMasksFromFile("C:\\Users\\Clay\\git\\projects\\wordsTest\\src\\woerter.txt");
 
         long startTime = System.currentTimeMillis();
-        program.createWordMasks();
         program.findMatches();
         long endTime = System.currentTimeMillis();
         program.printMatches();

@@ -85,7 +85,7 @@ public class FastRun {
 
     public static void main(String[] args) {
         FastRun program = new FastRun();
-        program.readWordsFromFile("/home/jaro/Downloads/woerter.txt");
+        program.readWordsFromFile("C:\\Users\\Clay\\git\\projects\\wordsTest\\src\\woerter.txt");
 
         long startTime = System.currentTimeMillis();
         program.findMatches();

@@ -9,7 +9,7 @@ import java.util.List;
 
 public class FilterStringsInFile {
     public static void main(String[] args) {
-        File file = new File("/home/jaro/Downloads/woerter.txt");
+        File file = new File("C:\\Users\\Clay\\git\\projects\\wordsTest\\src\\woerter.txt");
         filterFiveLetterStrings(file);
     }
 
