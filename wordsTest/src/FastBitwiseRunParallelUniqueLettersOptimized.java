@@ -117,7 +117,8 @@ public class FastBitwiseRunParallelUniqueLettersOptimized {
 
     public static void main(String[] args) {
         FastBitwiseRunParallelUniqueLettersOptimized program = new FastBitwiseRunParallelUniqueLettersOptimized();
-        program.readWordsAndCreateMasksFromFile("C:\\Users\\Clay\\git\\projects\\wordsTest\\src\\woerter.txt");
+        String currentDirectory = new File("").getAbsolutePath();
+        program.readWordsAndCreateMasksFromFile(currentDirectory +"\\src\\woerter.txt");
 
         long startTime = System.currentTimeMillis();
         int matchCount = program.findMatches();
@@ -126,4 +127,7 @@ public class FastBitwiseRunParallelUniqueLettersOptimized {
         System.out.println("Number of combinations of 5 words with no shared letters and no repeated letters: " + matchCount);
         System.out.println("Elapsed time: " + (endTime - startTime) + " milliseconds");
     }
+
 }
+
+
