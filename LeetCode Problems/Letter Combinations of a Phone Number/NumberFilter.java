@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter;
 public class NumberFilter {
     public static void main(String[] args) {
         long maxValue = 1_000_000_000_000_000L;
-        String fileName = "filtered_numbers.txt";
+        String fileName = "filtered_nuumbers.txt";
         LocalDateTime startTime = LocalDateTime.now();
 
         // Find the largest number in the existing file
