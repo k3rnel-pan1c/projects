@@ -1,3 +1,5 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -9,8 +11,11 @@ public class NumberFilter {
         String fileName = "filtered_numbers.txt";
         LocalDateTime startTime = LocalDateTime.now();
 
-        try (FileWriter writer = new FileWriter(fileName)) {
-            for (long number = 1; number < maxValue; number++) {
+        // Find the largest number in the existing file
+        long largestNumber = getLargestNumberFromFile(fileName);
+
+        try (FileWriter writer = new FileWriter(fileName, true)) { // Append mode
+            for (long number = largestNumber + 1; number < maxValue; number++) {
                 if (isAscendingOrder(number) && !containsDigits(number, '0', '1', '5') && countOccurrences(number, '3') <= 1) {
                     writer.write(Long.toString(number));
                     writer.write(System.lineSeparator());
@@ -57,5 +62,24 @@ public class NumberFilter {
 
     private static int countOccurrences(long number, char digit) {
         return String.valueOf(number).length() - String.valueOf(number).replace(Character.toString(digit), "").length();
+    }
+
+    private static long getLargestNumberFromFile(String fileName) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String line;
+            long largestNumber = 0;
+
+            while ((line = reader.readLine()) != null) {
+                long number = Long.parseLong(line);
+                if (number > largestNumber) {
+                    largestNumber = number;
+                }
+            }
+
+            return largestNumber;
+        } catch (IOException e) {
+            // File does not exist or cannot be read, return 0 as the largest number
+            return 0;
+        }
     }
 }

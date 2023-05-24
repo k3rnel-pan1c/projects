@@ -1,6 +1,6 @@
 public class gptMultiPersis2 {
     public static void main(String[] args) {
-        int persistence = 11; // Set the desired multiplication persistence
+        int persistence = 10; // Set the desired multiplication persistence
 
         if (persistence < 1) {
             System.out.println("Persistence should be a positive integer.");
