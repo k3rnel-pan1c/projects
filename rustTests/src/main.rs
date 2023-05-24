@@ -1,75 +1,135 @@
-use std::io;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
+use std::time::{Duration, Instant};
 
 fn main() {
-    println!("What should the multiplicative persistence be?:");
+    let max_value: i64 = 1_000_000_000_000_000;
+    let file_path = "filtered_numbers.txt".to_string();
+    let mut start_time = Instant::now();
 
-    let persistence: u32 = {
-        let mut input = String::new();
-        io::stdin()
-            .read_line(&mut input)
-            .expect("Failed to read input");
-        input.trim().parse().expect("Invalid input")
-    };
+    // Find the largest number in the existing file
+    let largest_number = get_largest_number_from_file(&file_path);
 
-    let big_int = Arc::new(Mutex::new(0u32));
-    let steps = Arc::new(Mutex::new(0u32));
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&file_path)
+        .unwrap();
 
-    let mut handles = vec![];
+    let mut current_number = largest_number + 1;
+    let mut buffer = Vec::new(); // Buffer for storing numbers before writing to file
 
-    for _ in 0..num_cpus::get() {
-        let big_int = Arc::clone(&big_int);
-        let steps = Arc::clone(&steps);
-
-        let handle = thread::spawn(move || {
-            while *steps.lock().unwrap() < persistence {
-                let mut current_number = {
-                    let mut big_int = big_int.lock().unwrap();
-                    *big_int += 1;
-                    *big_int
-                };
-
-                if contains_invalid_digits(current_number) {
-                    continue;
-                }
-
-                let mut current_steps = 0;
-                while current_number >= 10 {
-                    let mut product = 1;
-
-                    while current_number != 0 {
-                        let digit = current_number % 10;
-                        product *= digit;
-                        current_number /= 10;
-                    }
-
-                    current_number = product;
-                    current_steps += 1;
-                }
-
-                let mut steps = steps.lock().unwrap();
-                if current_steps > *steps {
-                    *steps = current_steps;
-                }
+    loop {
+        if current_number <= max_value {
+            if is_ascending_order(current_number)
+                && !contains_digits(current_number, &[0, 1, 5])
+                && count_occurrences(current_number, 3) <= 1
+            {
+                buffer.push(current_number);
             }
-        });
 
-        handles.push(handle);
+            let elapsed_time = start_time.elapsed().as_secs();
+            if elapsed_time >= 60 {
+                println!("Current number: {}", current_number);
+                // Reset start time
+                start_time = Instant::now();
+            }
+
+            // Write the buffer to file in batches of 1000000 numbers
+            if buffer.len() >= 1000000 {
+                write_numbers_to_file(&mut file, &buffer);
+                buffer.clear();
+            }
+
+            current_number += 1;
+        } else {
+            break;
+        }
     }
 
-    for handle in handles {
-        handle.join().unwrap();
+    // Write any remaining numbers in the buffer to file
+    if !buffer.is_empty() {
+        write_numbers_to_file(&mut file, &buffer);
     }
 
-    let big_int = *big_int.lock().unwrap();
-    let steps = *steps.lock().unwrap();
-
-    println!("Number: {}", big_int);
-    println!("Steps: {}", steps);
+    println!("Numbers have been written to {}", file_path);
 }
 
-fn contains_invalid_digits(number: u32) -> bool {
-    let number_string = number.to_string();
-    number_string.contains('0') || number_string.contains('5') || number_string.contains('1')
+fn is_ascending_order(number: i64) -> bool {
+    let mut prev_digit = 9;
+    let mut n = number;
+
+    while n > 0 {
+        let digit = n % 10;
+        if digit > prev_digit {
+            return false;
+        }
+        prev_digit = digit;
+        n /= 10;
+    }
+
+    true
+}
+
+fn contains_digits(number: i64, digits: &[i64]) -> bool {
+    let mut n = number;
+
+    while n > 0 {
+        let digit = n % 10;
+        let digit_mask = 1 << digit;
+
+        for &d in digits {
+            if digit_mask & (1 << d) != 0 {
+                return true;
+            }
+        }
+
+        n /= 10;
+    }
+
+    false
+}
+
+
+fn count_occurrences(number: i64, digit: i64) -> usize {
+    let mut n = number;
+    let mut count = 0;
+
+    while n > 0 {
+        let d = n % 10;
+        if d == digit {
+            count += 1;
+        }
+        n /= 10;
+    }
+
+    count
+}
+
+fn get_largest_number_from_file(file_path: &str) -> i64 {
+    if Path::new(file_path).exists() {
+        let file = File::open(file_path).unwrap();
+        let reader = BufReader::new(file);
+
+        let mut largest_number = 0;
+
+        for line in reader.lines() {
+            if let Ok(number) = line.unwrap().parse::<i64>() {
+                if number > largest_number {
+                    largest_number = number;
+                }
+            }
+        }
+
+        largest_number
+    } else {
+        0
+    }
+}
+
+fn write_numbers_to_file(file: &mut File, numbers: &[i64]) {
+    let numbers_str: Vec<String> = numbers.iter().map(|&num| num.to_string()).collect();
+    let joined_str = numbers_str.join("\n");
+    writeln!(file, "{}", joined_str).unwrap();
 }
